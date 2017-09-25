@@ -37,12 +37,12 @@ namespace ServerCommunicationSWAddIn
         /// <summary>
         /// The description of this addin
         /// </summary>
-        public override string AddInDescription { get { return "Sends the current model to the server"; }}
+        public override string AddInDescription { get { return "Communicates with the server"; }}
 
         /// <summary>
         /// The title of this addin
         /// </summary>
-        public override string AddInTitle { get { return "Send to server"; } }
+        public override string AddInTitle { get { return "Server Communication"; } }
 
         /// <summary>
         /// Callback function triggered when the addin is conected to solidworks
@@ -65,8 +65,9 @@ namespace ServerCommunicationSWAddIn
                 items: new List<CommandManagerItem>(new[] {
 
                     new CommandManagerItem {
-                        Name = "Send to server",
+                        Name = "Send",
                         Tooltip = "Send to server",
+                        ImageIndex = 0,
                         Hint = "Send the model to the server",
                         VisibleForDrawings = false,
                         OnClick = () =>
@@ -75,7 +76,8 @@ namespace ServerCommunicationSWAddIn
                         }
                     }
 
-                }));
+                }),
+                iconListsPath: "icon{0}.png");
         }
 
         /// <summary>
