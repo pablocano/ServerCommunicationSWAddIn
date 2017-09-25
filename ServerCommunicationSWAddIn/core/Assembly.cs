@@ -63,6 +63,9 @@ namespace ServerCommunicationSWAddIn.core
         [JsonIgnore]
         private Dictionary<string, List<Relation>> m_waiting_ids;
 
+        [JsonIgnore]
+        private uint m_model_version;
+
         #endregion
 
         #region Public Members
@@ -99,6 +102,11 @@ namespace ServerCommunicationSWAddIn.core
         /// Access to the current version of the assembly
         /// </summary>
         public uint Version { get { return m_version; } }
+
+        /// <summary>
+        /// Access to the current version of the exported model
+        /// </summary>
+        public uint ModelVersion { get { return m_model_version; } }
 
         /// <summary>
         /// Access to the unique identifier of the document used to create this class
@@ -167,6 +175,11 @@ namespace ServerCommunicationSWAddIn.core
                 }
             }
         }
+
+        /// <summary>
+        /// Access to the solidworks document
+        /// </summary>
+        public ModelDoc2 Document { get { return m_document.UnsafeObject; } }
 
         /// <summary>
         /// Access to the document name
@@ -267,7 +280,19 @@ namespace ServerCommunicationSWAddIn.core
             {
                 m_version = Convert.ToUInt32(version);
             }
-            
+
+            string sModelVersion = m_document.GetCustomProperty("modelVersion");
+            if (sModelVersion == "")
+            {
+                needSave = true;
+                m_model_version = 1;
+                m_document.SetCustomProperty("modelVersion", "0");
+            }
+            else
+            {
+                m_model_version = Convert.ToUInt32(sModelVersion);
+            }
+
             m_name = m_document.UnsafeObject.GetTitle();
             m_guid = m_document.FilePath;
 
@@ -327,7 +352,17 @@ namespace ServerCommunicationSWAddIn.core
         public void Save()
         {
             int Errors = 0, Warnings = 0;
-            m_document.UnsafeObject.Save3((int)swSaveAsOptions_e.swSaveAsOptions_AvoidRebuildOnSave, ref Errors, ref Warnings);
+            m_document.UnsafeObject.Save3((int)(swSaveAsOptions_e.swSaveAsOptions_AvoidRebuildOnSave | swSaveAsOptions_e.swSaveAsOptions_Silent), ref Errors, ref Warnings);
+        }
+
+        /// <summary>
+        /// Updates the model version of this assembly
+        /// </summary>
+        public void UpdateModelVersion()
+        {
+            m_model_version = m_version;
+            m_document.SetCustomProperty("modelVersion", m_model_version.ToString());
+            Save();
         }
         #endregion
     }

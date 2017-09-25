@@ -59,6 +59,9 @@ namespace ServerCommunicationSWAddIn
             // Add a callback function to the ModelSaved event, to change the document version
             Dna.Application.ActiveFileSaved += Application_ActiveFileSaved;
 
+            // Add a callback function to the FileOpened event, to add the custom properties needed
+            Dna.Application.FileOpened += Application_FileOpened;
+
             // Part commands
             var partGroup = Dna.Application.CommandManager.CreateCommands(
                 title: "Server Communication",
@@ -72,12 +75,61 @@ namespace ServerCommunicationSWAddIn
                         VisibleForDrawings = false,
                         OnClick = () =>
                         {
-                            ButtonAction();
+                            SendToServer();
+                        }
+                    },
+
+                    new CommandManagerItem {
+                        Name = "Export",
+                        Tooltip = "Export all the tree into STEP files",
+                        ImageIndex = 0,
+                        Hint = "Create one STEP file for each part and for each assembly",
+                        VisibleForDrawings = false,
+                        OnClick = () =>
+                        {
+                            ExportModel();
                         }
                     }
 
+
                 }),
                 iconListsPath: "icon{0}.png");
+        }
+
+        /// <summary>
+        /// FileOpened callback used to add all the custom properties needed
+        /// </summary>
+        /// <param name="filename">The complete path to the opened file</param>
+        /// <param name="model">The model opened</param>
+        private void Application_FileOpened(string filename, Model model)
+        {
+            if (model.IsDrawing)
+                return;
+
+            string id = model.GetCustomProperty("Id");
+            if (id == "")
+            {
+                model.SetCustomProperty("Id", "-1");
+            }
+
+            // Set the information needed with the properties values
+            string partNumber = model.GetCustomProperty("partNumber");
+            if (partNumber == "")
+            {
+                model.SetCustomProperty("partNumber", "");
+            }
+
+            string sVersion = model.GetCustomProperty("version");
+            if (sVersion == "")
+            {
+                model.SetCustomProperty("version", "1");
+            }
+
+            string sModelVersion = model.GetCustomProperty("modelVersion");
+            if (sModelVersion == "")
+            {
+                model.SetCustomProperty("modelVersion", "0");
+            }
         }
 
         /// <summary>
@@ -113,12 +165,12 @@ namespace ServerCommunicationSWAddIn
         /// <summary>
         /// Callback function of the sendToServer button
         /// </summary>
-        public void ButtonAction()
+        public void SendToServer()
         {
             // Verify that we are connected to the server
             if (!CommTool.Instance.IsConnected)
             {
-                Dna.Application.ShowMessageBox("Solid Edge is not connected to the server", SolidWorksMessageBoxIcon.Stop);
+                Dna.Application.ShowMessageBox("Solidworks is not connected to the server", SolidWorksMessageBoxIcon.Stop);
                 return;
             }
 
@@ -132,6 +184,21 @@ namespace ServerCommunicationSWAddIn
             {
                 // Error if the current document is not a assembly nor a part.
                 Dna.Application.ShowMessageBox("You can only send part or assemblies to the server", SolidWorksMessageBoxIcon.Stop);
+            }
+        }
+
+        public void ExportModel()
+        {
+            // Process the assembly or the part accordingly
+            if (!Dna.Application.ActiveModel.IsDrawing)
+            {
+                ServerCommSessionWindows sessionWindow = new ServerCommSessionWindows(Dna.Application.ActiveModel);
+                sessionWindow.ShowDialog();
+            }
+            else
+            {
+                // Error if the current document is not a assembly nor a part.
+                Dna.Application.ShowMessageBox("You can only export a part or an assembly", SolidWorksMessageBoxIcon.Stop);
             }
         }
 

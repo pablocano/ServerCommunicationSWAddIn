@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using ServerCommunicationSWAddIn.communication;
 using ServerCommunicationSWAddIn.core;
 using SolidWorks.Interop.sldworks;
+using SolidWorks.Interop.swconst;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -83,6 +84,11 @@ namespace ServerCommunicationSWAddIn.util
                 return m_ProcessedAssemblies.Count == m_FailedAssemblies.Count + m_ReadyAssemblies.Count;
             }
         }
+
+        /// <summary>
+        /// Boolean to indicate if the session can be exported
+        /// </summary>
+        public bool CanBeExported { get { return m_ProcessedAssemblies.Count == m_WaitingForChildIds.Count; } }
 
         /// <summary>
         /// The total number of steps needed to end the session
@@ -557,8 +563,9 @@ namespace ServerCommunicationSWAddIn.util
 
         /// <summary>
         /// Method that process an assembly document and check if every subpart and subassembly has been sent to the server and if it is updated.
-        /// </summary>
         /// <param name="currentAssembly">The current assembly been processing</param>
+        /// <param name="worker">The worker in charge of doing this task</param>
+        /// </summary>
         public ProcessStatus ProcessAssemblyRecursively(Assembly currentAssembly, BackgroundWorker worker)
         {
             // If the current assembly is already been processed in the current session, skip this iteration
@@ -636,7 +643,7 @@ namespace ServerCommunicationSWAddIn.util
                 }
             }
 
-            // If at leat one of my childs can not be sent to the server, neither the current assembly
+            // If at leat one of the childs can not be sent to the server, neither the current assembly
             if (!allSubOccurrencesValid)
             {
                 worker.ReportProgress(0, new StatusMessage(currentAssembly.DocumentName, "On of the assembly childs cannot be sent"));
@@ -668,10 +675,103 @@ namespace ServerCommunicationSWAddIn.util
                 return ProcessStatus.NEW;
             }
 
-            // If the current assembly can be sent or updated, mark as failed
+            // If the current assembly cant be sent or updated, mark as failed
             worker.ReportProgress(0, new StatusMessage(currentAssembly.DocumentName, "Cannot be sent"));
             Add(currentAssembly, ProcessStatus.FAIL);
             return ProcessStatus.FAIL;
+        }
+
+        #endregion
+
+        #region Exporting Process
+
+        /// <summary>
+        /// Process that export every part and assembly into a step file
+        /// </summary>
+        /// <param name="filepath">The place to save the files</param>
+        /// <param name="worker">The worker in charge of doing this task</param>
+        public void Export(string filepath, BackgroundWorker worker)
+        {
+            // Set the preferences of the export from assembly to part
+            Dna.Application.UnsafeObject.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swSaveAssemblyAsPartOptions, (int)swSaveAsmAsPartOptions_e.swSaveAsmAsPart_ExteriorFaces);
+            int Errors = 0, Warnings = 0;
+
+            // Process all the assemblies
+            while (!m_WaitingForChildIds.IsEmpty)
+            {
+                // Extract the current assembly
+                Assembly currentAssembly;
+                m_WaitingForChildIds.TryDequeue(out currentAssembly);
+
+                // If the model is already in the lastest version, do nothing
+                if(currentAssembly.ModelVersion == currentAssembly.Version)
+                {
+                    Step(4);
+                    worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Document has been already exported", messageComm: MessageComm.SENDED));
+                    return;
+                }
+
+                // If the current assembly is a part, it can be converted immediately. If is not, it has to be transformed into a part first
+                if (currentAssembly.IsPart)
+                {
+                    // Save the part as a step file
+                    currentAssembly.Document.Extension.SaveAs(filepath + currentAssembly.Name + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
+
+                    // Report to the user
+                    Step(4);
+                    if(Errors != 0)
+                    {
+                        worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Part exported correctly", messageComm: MessageComm.SENDED));
+
+                        // Update the model version
+                        currentAssembly.UpdateModelVersion();
+                    }
+                    else
+                    {
+                        worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Part failed to export", messageComm: MessageComm.SENDED));
+                    }
+
+                }
+                else
+                {
+                    // Save the assembly as a part
+                    currentAssembly.Document.Extension.SaveAs(filepath + currentAssembly.Name + ".SLDPRT",0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, Warnings);
+                    
+                    // If it works, continue the process
+                    if(Errors != 0)
+                    {
+                        // Report the middle progress
+                        Step(2);
+                        worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly transformed to a part", messageComm: MessageComm.SENDED));
+
+                        // Open the recently exported part
+                        ModelDoc2 exportedPart = Dna.Application.UnsafeObject.OpenDoc6(filepath + currentAssembly.Name + ".SLDPRT", (int)swDocumentTypes_e.swDocPART, (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref Errors, ref Warnings);
+
+                        // Save the part as a step file
+                        exportedPart.Extension.SaveAs(filepath + currentAssembly.Name + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
+                        Step(2);
+
+                        // If it works, report to the user
+                        if (Errors != 0)
+                        {
+                            worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly exported correctly", messageComm: MessageComm.SENDED));
+
+                            // Update the model version
+                            currentAssembly.UpdateModelVersion();
+                        }
+                        else
+                        {
+                            worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly failed to export", messageComm: MessageComm.SENDED));
+                        }
+                    }
+                    else
+                    {
+                        Step(4);
+                        worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly failed to be transformed to a part", messageComm: MessageComm.SENDED));
+                    }
+                }
+
+            }
         }
 
         #endregion
