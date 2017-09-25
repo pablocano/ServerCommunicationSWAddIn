@@ -1,0 +1,19 @@
+﻿<Window x:Class="ServerCommunicationSWAddIn.ServerCommSessionWindows"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Server Communication Status" Height="365" Width="620"
+        MinWidth="620" MinHeight="365"
+        ContentRendered="Window_ContentRendered"
+        WindowStartupLocation="CenterScreen">
+    <StackPanel Orientation="Vertical" Margin="10">
+        <TextBlock Name="statusLabel" Height="20"></TextBlock>
+        <ProgressBar Name="pbStatus" Minimum="0" Maximum="100" Height="20" IsIndeterminate="True" />
+        <TextBlock Name="currentProcess" Height="20"></TextBlock>
+        <TextBox ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+         ScrollViewer.VerticalScrollBarVisibility="Auto" Name="lbResults" IsReadOnly="True" TextWrapping="Wrap" Height="200"></TextBox>
+        <DockPanel Height="30" LastChildFill="False" Margin="10">
+            <Button Name="btOk" Focusable="True" DockPanel.Dock="Right" Width="100" Click="Button_Click">Send</Button>
+            <Button Name="btCancel" Focusable="True" DockPanel.Dock="Left" Width="100" Click="Button_Click_1">Cancel</Button>
+        </DockPanel>
+    </StackPanel>
+</Window>
