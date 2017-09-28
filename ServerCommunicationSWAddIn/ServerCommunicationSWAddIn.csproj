@@ -30,10 +30,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AngelSix.SolidDna">
-      <HintPath>D:\Documentos\solidworks-api\SolidDna\AngelSix.SolidDna\bin\Release\AngelSix.SolidDna.dll</HintPath>
-      <EmbedInteropTypes>False</EmbedInteropTypes>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
@@ -78,6 +74,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -92,6 +89,9 @@
     <Compile Include="core\Position.cs" />
     <Compile Include="core\Relation.cs" />
     <Compile Include="core\Vectorf3D.cs" />
+    <Compile Include="ExportSessionWindows.xaml.cs">
+      <DependentUpon>ExportSessionWindows.xaml</DependentUpon>
+    </Compile>
     <Compile Include="SolidDnaIntegration.cs" />
     <Compile Include="communication\Client.cs" />
     <Compile Include="communication\CommTool.cs" />
@@ -109,6 +109,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="ExportSessionWindows.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="ServerCommSessionWindows.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -133,6 +137,12 @@
     <Content Include="icon96.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="D:\Documentos\solidworks-api\SolidDna\AngelSix.SolidDna\AngelSix.SolidDna.csproj">
+      <Project>{48CE7BA4-1082-4089-9056-657A6A3EEA39}</Project>
+      <Name>AngelSix.SolidDna</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -88,7 +88,7 @@ namespace ServerCommunicationSWAddIn.util
         /// <summary>
         /// Boolean to indicate if the session can be exported
         /// </summary>
-        public bool CanBeExported { get { return m_ProcessedAssemblies.Count == m_WaitingForChildIds.Count; } }
+        public bool CanBeExported { get { return m_ProcessedAssemblies.Count == m_WaitingForVersion.Count; } }
 
         /// <summary>
         /// The total number of steps needed to end the session
@@ -690,41 +690,53 @@ namespace ServerCommunicationSWAddIn.util
         /// </summary>
         /// <param name="filepath">The place to save the files</param>
         /// <param name="worker">The worker in charge of doing this task</param>
-        public void Export(string filepath, BackgroundWorker worker)
+        public void Export(string filepath, string rootAssemblyName, BackgroundWorker worker)
         {
             // Set the preferences of the export from assembly to part
             Dna.Application.UnsafeObject.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swSaveAssemblyAsPartOptions, (int)swSaveAsmAsPartOptions_e.swSaveAsmAsPart_ExteriorFaces);
             int Errors = 0, Warnings = 0;
 
             // Process all the assemblies
-            while (!m_WaitingForChildIds.IsEmpty)
+            while (!m_WaitingForVersion.IsEmpty)
             {
                 // Extract the current assembly
                 Assembly currentAssembly;
-                m_WaitingForChildIds.TryDequeue(out currentAssembly);
+                m_WaitingForVersion.TryDequeue(out currentAssembly);
 
                 // If the model is already in the lastest version, do nothing
                 if(currentAssembly.ModelVersion == currentAssembly.Version)
                 {
                     Step(4);
                     worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Document has been already exported", messageComm: MessageComm.SENDED));
-                    return;
+                    m_ReadyAssemblies.TryAdd(currentAssembly.Guid, currentAssembly);
+                    continue;
                 }
 
                 // If the current assembly is a part, it can be converted immediately. If is not, it has to be transformed into a part first
                 if (currentAssembly.IsPart)
                 {
+                    // Activate the part
+                    var modelDoc = (ModelDoc2)Dna.Application.UnsafeObject.ActivateDoc3(currentAssembly.DocumentName, false, 0, ref Errors);
+
                     // Save the part as a step file
-                    currentAssembly.Document.Extension.SaveAs(filepath + currentAssembly.Name + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
+                    modelDoc.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
 
                     // Report to the user
                     Step(4);
-                    if(Errors != 0)
+                    if(Errors == 0)
                     {
                         worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Part exported correctly", messageComm: MessageComm.SENDED));
 
                         // Update the model version
-                        currentAssembly.UpdateModelVersion();
+                        try
+                        {
+                            currentAssembly.UpdateModelVersion();
+                        }
+                        catch
+                        {
+                            var model = new Model(modelDoc);
+                            model.SetCustomProperty("modelVersion", model.GetCustomProperty("version"));
+                        }
                     }
                     else
                     {
@@ -734,30 +746,41 @@ namespace ServerCommunicationSWAddIn.util
                 }
                 else
                 {
+                    var modelDoc = (ModelDoc2)Dna.Application.UnsafeObject.ActivateDoc3(currentAssembly.DocumentName, false, 0, ref Errors);
                     // Save the assembly as a part
-                    currentAssembly.Document.Extension.SaveAs(filepath + currentAssembly.Name + ".SLDPRT",0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, Warnings);
-                    
+                    modelDoc.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + "part.SLDPRT",0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, Warnings);
+
                     // If it works, continue the process
-                    if(Errors != 0)
+                    if (Errors == 0)
                     {
                         // Report the middle progress
                         Step(2);
                         worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly transformed to a part", messageComm: MessageComm.SENDED));
 
                         // Open the recently exported part
-                        ModelDoc2 exportedPart = Dna.Application.UnsafeObject.OpenDoc6(filepath + currentAssembly.Name + ".SLDPRT", (int)swDocumentTypes_e.swDocPART, (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref Errors, ref Warnings);
+                        ModelDoc2 exportedPart = Dna.Application.UnsafeObject.OpenDoc6(filepath + "\\" + currentAssembly.DocumentName + "part.SLDPRT", (int)swDocumentTypes_e.swDocPART, (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref Errors, ref Warnings);
 
                         // Save the part as a step file
-                        exportedPart.Extension.SaveAs(filepath + currentAssembly.Name + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
+                        exportedPart.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
+
+                        Dna.Application.UnsafeObject.CloseDoc(currentAssembly.DocumentName + "part.SLDPRT");
                         Step(2);
 
                         // If it works, report to the user
-                        if (Errors != 0)
+                        if (Errors == 0)
                         {
                             worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly exported correctly", messageComm: MessageComm.SENDED));
 
                             // Update the model version
-                            currentAssembly.UpdateModelVersion();
+                            try
+                            {
+                                currentAssembly.UpdateModelVersion();
+                            }
+                            catch
+                            {
+                                var model = new Model(modelDoc);
+                                model.SetCustomProperty("modelVersion", model.GetCustomProperty("version"));
+                            }
                         }
                         else
                         {
@@ -771,6 +794,112 @@ namespace ServerCommunicationSWAddIn.util
                     }
                 }
 
+                // Close the opened document
+                if (currentAssembly.DocumentName != rootAssemblyName)
+                    Dna.Application.UnsafeObject.CloseDoc(currentAssembly.DocumentName);
+
+                // Add the current document to the ready list
+                m_ReadyAssemblies.TryAdd(currentAssembly.Guid, currentAssembly);
+            }
+        }
+
+
+        /// <summary>
+        /// Process that export every part and assembly into a step file
+        /// </summary>
+        /// <param name="filepath">The place to save the files</param>
+        /// <param name="worker">The worker in charge of doing this task</param>
+        public void Export(string filepath, string rootAssemblyName)
+        {
+            // Set the preferences of the export from assembly to part
+            Dna.Application.UnsafeObject.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swSaveAssemblyAsPartOptions, (int)swSaveAsmAsPartOptions_e.swSaveAsmAsPart_ExteriorFaces);
+            int Errors = 0, Warnings = 0;
+
+            // Process all the assemblies
+            while (!m_WaitingForVersion.IsEmpty)
+            {
+                // Extract the current assembly
+                Assembly currentAssembly;
+                m_WaitingForVersion.TryDequeue(out currentAssembly);
+
+                // If the model is already in the lastest version, do nothing
+                if (currentAssembly.ModelVersion == currentAssembly.Version || currentAssembly.DocumentName == rootAssemblyName)
+                {
+                    Step(4); 
+                    m_ReadyAssemblies.TryAdd(currentAssembly.Guid, currentAssembly);
+                    continue;
+                }
+
+                // If the current assembly is a part, it can be converted immediately. If is not, it has to be transformed into a part first
+                if (currentAssembly.IsPart)
+                {
+
+                    var modelDoc = (ModelDoc2)Dna.Application.UnsafeObject.ActivateDoc3(currentAssembly.DocumentName, false, 0, ref Errors);
+
+                    // Save the part as a step file
+                    modelDoc.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
+
+                    // Report to the user
+                    Step(4);
+                    if (Errors == 0)
+                    {
+                        // Update the model version
+                        try
+                        {
+                            currentAssembly.UpdateModelVersion();
+                        }
+                        catch
+                        {
+                            var model = new Model(modelDoc);
+                            model.SetCustomProperty("modelVersion", model.GetCustomProperty("version"));
+                        }
+                    }
+
+                    Dna.Application.UnsafeObject.CloseDoc(currentAssembly.DocumentName);
+
+                }
+                else
+                {
+                    // Save the assembly as a part
+                    currentAssembly.Document.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + "part.SLDPRT", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, Warnings);
+
+                    // If it works, continue the process
+                    if (Errors == 0)
+                    {
+                        // Report the middle progress
+                        Step(2);
+                       
+                        // Open the recently exported part
+                        ModelDoc2 exportedPart = Dna.Application.UnsafeObject.OpenDoc6(filepath + "\\" + currentAssembly.DocumentName + "part.SLDPRT", (int)swDocumentTypes_e.swDocPART, (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref Errors, ref Warnings);
+
+                        // Save the part as a step file
+                        exportedPart.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
+
+                        Dna.Application.UnsafeObject.CloseDoc(currentAssembly.DocumentName);
+                        Step(2);
+
+                        // If it works, report to the user
+                        if (Errors == 0)
+                        {
+
+                            // Update the model version
+                            try
+                            {
+                                currentAssembly.UpdateModelVersion();
+                            }
+                            catch
+                            {
+                                var model = new Model(exportedPart);
+                                model.SetCustomProperty("modelVersion", model.GetCustomProperty("version"));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Step(4);       
+                    }
+                }
+                m_ReadyAssemblies.TryAdd(currentAssembly.Guid, currentAssembly);
             }
         }
 

@@ -188,7 +188,7 @@ namespace ServerCommunicationSWAddIn.core
         {
             get
             {
-                return m_document.UnsafeObject.GetTitle();
+                return m_filename;
             }
         }
 
@@ -227,7 +227,7 @@ namespace ServerCommunicationSWAddIn.core
             m_document = document;
             m_listAssemblyRelations = new List<Relation>();
             m_waiting_ids = new Dictionary<string, List<Relation>>();
-            m_filename = DocumentName;
+            m_filename = Document.GetTitle();
             Init();
         }
 
@@ -351,6 +351,9 @@ namespace ServerCommunicationSWAddIn.core
         /// </summary>
         public void Save()
         {
+            m_document.SetCustomProperty("Id", m_id_assembly.ToString());
+            m_document.SetCustomProperty("version", m_version.ToString());
+
             int Errors = 0, Warnings = 0;
             m_document.UnsafeObject.Save3((int)(swSaveAsOptions_e.swSaveAsOptions_AvoidRebuildOnSave | swSaveAsOptions_e.swSaveAsOptions_Silent), ref Errors, ref Warnings);
         }

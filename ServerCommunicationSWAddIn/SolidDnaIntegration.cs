@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using ServerCommunicationSWAddIn.communication;
 using System.Threading;
 using SolidWorks.Interop.swconst;
+using SolidWorks.Interop.sldworks;
 
 namespace ServerCommunicationSWAddIn
 {
@@ -69,7 +70,7 @@ namespace ServerCommunicationSWAddIn
 
                     new CommandManagerItem {
                         Name = "Send",
-                        Tooltip = "Send to server",
+                        Tooltip = "Send",
                         ImageIndex = 0,
                         Hint = "Send the model to the server",
                         VisibleForDrawings = false,
@@ -81,7 +82,7 @@ namespace ServerCommunicationSWAddIn
 
                     new CommandManagerItem {
                         Name = "Export",
-                        Tooltip = "Export all the tree into STEP files",
+                        Tooltip = "Export",
                         ImageIndex = 0,
                         Hint = "Create one STEP file for each part and for each assembly",
                         VisibleForDrawings = false,
@@ -167,9 +168,15 @@ namespace ServerCommunicationSWAddIn
         /// </summary>
         public void SendToServer()
         {
+            // Remove the save callback to avoid unecesary changes in the version
+            Dna.Application.ActiveFileSaved -= Application_ActiveFileSaved;
+
             // Verify that we are connected to the server
             if (!CommTool.Instance.IsConnected)
             {
+                // Restart the save callback
+                Dna.Application.ActiveFileSaved += Application_ActiveFileSaved;
+
                 Dna.Application.ShowMessageBox("Solidworks is not connected to the server", SolidWorksMessageBoxIcon.Stop);
                 return;
             }
@@ -185,21 +192,40 @@ namespace ServerCommunicationSWAddIn
                 // Error if the current document is not a assembly nor a part.
                 Dna.Application.ShowMessageBox("You can only send part or assemblies to the server", SolidWorksMessageBoxIcon.Stop);
             }
+
+            // Restart the save callback
+            Dna.Application.ActiveFileSaved += Application_ActiveFileSaved;
         }
 
         public void ExportModel()
         {
+            // Remove the save callback to avoid unecesary changes in the version
+            Dna.Application.ActiveFileSaved -= Application_ActiveFileSaved;
+
+
             // Process the assembly or the part accordingly
             if (!Dna.Application.ActiveModel.IsDrawing)
             {
-                ServerCommSessionWindows sessionWindow = new ServerCommSessionWindows(Dna.Application.ActiveModel);
-                sessionWindow.ShowDialog();
+                if (Dna.Application.ActiveModel.HasBeenSaved)
+                {
+                    ExportSessionWindows sessionWindow = new ExportSessionWindows();
+
+                    sessionWindow.ShowDialog();
+                }
+                else
+                {
+                    // Error if the current document has not been saved.
+                    Dna.Application.ShowMessageBox("You have to save the model first", SolidWorksMessageBoxIcon.Stop);
+                }
             }
             else
             {
                 // Error if the current document is not a assembly nor a part.
                 Dna.Application.ShowMessageBox("You can only export a part or an assembly", SolidWorksMessageBoxIcon.Stop);
             }
+
+            // Restart the save callback
+            Dna.Application.ActiveFileSaved += Application_ActiveFileSaved;
         }
 
         public override void DisconnectedFromSolidWorks()
