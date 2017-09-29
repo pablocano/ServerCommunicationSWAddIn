@@ -5,6 +5,9 @@ using ServerCommunicationSWAddIn.communication;
 using System.Threading;
 using SolidWorks.Interop.swconst;
 using SolidWorks.Interop.sldworks;
+using ServerCommunicationSWAddIn.util;
+using ServerCommunicationSWAddIn.core;
+using System.Windows.Forms;
 
 namespace ServerCommunicationSWAddIn
 {
@@ -88,7 +91,7 @@ namespace ServerCommunicationSWAddIn
                         VisibleForDrawings = false,
                         OnClick = () =>
                         {
-                            ExportModel();
+                            ExportModel2();
                         }
                     }
 
@@ -226,6 +229,39 @@ namespace ServerCommunicationSWAddIn
 
             // Restart the save callback
             Dna.Application.ActiveFileSaved += Application_ActiveFileSaved;
+        }
+
+        public void ExportModel2()
+        {
+            // Ask to the user for the folder to save the files
+            var dialog = new FolderBrowserDialog();
+            var result = dialog.ShowDialog();
+
+            if (result == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
+            {
+                ExportTool tool = new ExportTool();
+
+                // Create the first assembly
+                var activeModel = (ModelDoc2)Dna.Application.UnsafeObject.ActiveDoc;
+
+                bool isPart = (ModelType)activeModel.GetType() == ModelType.Part;
+
+                int Errors = 0, Warnings = 0;
+                var modeldoc = Dna.Application.UnsafeObject.OpenDoc6(activeModel.GetPathName(), (int)(isPart ? swDocumentTypes_e.swDocPART : swDocumentTypes_e.swDocASSEMBLY), (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref Errors, ref Warnings);
+                var activeAssembly = new Assembly(new Model(modeldoc));
+
+                if (!tool.ProcessAssemblyRecursively(activeAssembly))
+                {
+                    // Error if the current document has not been saved.
+                    Dna.Application.ShowMessageBox("You have to send the model to the server first", SolidWorksMessageBoxIcon.Stop);
+                    return;
+                }
+
+                // Export all the assemblies
+                tool.Export(dialog.SelectedPath, activeAssembly.DocumentName);
+
+                Dna.Application.ShowMessageBox("Export finished", SolidWorksMessageBoxIcon.Information);
+            }
         }
 
         public override void DisconnectedFromSolidWorks()

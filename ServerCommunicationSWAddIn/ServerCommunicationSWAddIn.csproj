@@ -103,6 +103,7 @@
     <Compile Include="util\CommunicationSession.cs" />
     <Compile Include="util\ConversationTool.cs" />
     <Compile Include="util\Cryptography.cs" />
+    <Compile Include="util\ExportTool.cs" />
     <Compile Include="util\MatrixTransform.cs" />
   </ItemGroup>
   <ItemGroup>

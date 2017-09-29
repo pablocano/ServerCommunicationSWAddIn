@@ -151,9 +151,9 @@ namespace ServerCommunicationSWAddIn
                 pbStatus.Maximum = m_Session.TotalSteps;
 
                 // Start the exporter worker
-                exporterWorker.RunWorkerAsync();
+                //exporterWorker.RunWorkerAsync();
 
-                //m_Session.Export(filepath, m_StartAssembly.DocumentName);
+                m_Session.Export(filepath, m_StartAssembly.DocumentName);
                 
             }
         }

@@ -715,8 +715,9 @@ namespace ServerCommunicationSWAddIn.util
                 // If the current assembly is a part, it can be converted immediately. If is not, it has to be transformed into a part first
                 if (currentAssembly.IsPart)
                 {
+                    var sldworks = Dna.Application.UnsafeObject;
                     // Activate the part
-                    var modelDoc = (ModelDoc2)Dna.Application.UnsafeObject.ActivateDoc3(currentAssembly.DocumentName, false, 0, ref Errors);
+                    var modelDoc = (ModelDoc2)sldworks.ActivateDoc3(currentAssembly.DocumentName, false, 0, ref Errors);
 
                     // Save the part as a step file
                     modelDoc.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
@@ -736,6 +737,7 @@ namespace ServerCommunicationSWAddIn.util
                         {
                             var model = new Model(modelDoc);
                             model.SetCustomProperty("modelVersion", model.GetCustomProperty("version"));
+                            model.UnsafeObject.Save3((int)(swSaveAsOptions_e.swSaveAsOptions_AvoidRebuildOnSave | swSaveAsOptions_e.swSaveAsOptions_Silent), ref Errors, ref Warnings);
                         }
                     }
                     else
@@ -780,6 +782,7 @@ namespace ServerCommunicationSWAddIn.util
                             {
                                 var model = new Model(modelDoc);
                                 model.SetCustomProperty("modelVersion", model.GetCustomProperty("version"));
+                                model.UnsafeObject.Save3((int)(swSaveAsOptions_e.swSaveAsOptions_AvoidRebuildOnSave | swSaveAsOptions_e.swSaveAsOptions_Silent), ref Errors, ref Warnings);
                             }
                         }
                         else
@@ -823,7 +826,7 @@ namespace ServerCommunicationSWAddIn.util
                 m_WaitingForVersion.TryDequeue(out currentAssembly);
 
                 // If the model is already in the lastest version, do nothing
-                if (currentAssembly.ModelVersion == currentAssembly.Version || currentAssembly.DocumentName == rootAssemblyName)
+                if (currentAssembly.ModelVersion == currentAssembly.Version)
                 {
                     Step(4); 
                     m_ReadyAssemblies.TryAdd(currentAssembly.Guid, currentAssembly);
@@ -852,6 +855,7 @@ namespace ServerCommunicationSWAddIn.util
                         {
                             var model = new Model(modelDoc);
                             model.SetCustomProperty("modelVersion", model.GetCustomProperty("version"));
+                            model.UnsafeObject.Save3((int)(swSaveAsOptions_e.swSaveAsOptions_AvoidRebuildOnSave | swSaveAsOptions_e.swSaveAsOptions_Silent), ref Errors, ref Warnings);
                         }
                     }
 
@@ -891,6 +895,7 @@ namespace ServerCommunicationSWAddIn.util
                             {
                                 var model = new Model(exportedPart);
                                 model.SetCustomProperty("modelVersion", model.GetCustomProperty("version"));
+                                model.UnsafeObject.Save3((int)(swSaveAsOptions_e.swSaveAsOptions_AvoidRebuildOnSave | swSaveAsOptions_e.swSaveAsOptions_Silent), ref Errors, ref Warnings);
                             }
                         }
                     }
