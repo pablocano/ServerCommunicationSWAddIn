@@ -152,8 +152,6 @@ namespace ServerCommunicationSWAddIn
 
                 // Start the exporter worker
                 exporterWorker.RunWorkerAsync();
-
-                //m_Session.Export(filepath, m_StartAssembly.DocumentName);
                 
             }
         }
