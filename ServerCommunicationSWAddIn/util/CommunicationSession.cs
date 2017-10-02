@@ -715,61 +715,19 @@ namespace ServerCommunicationSWAddIn.util
                 // If the current assembly is a part, it can be converted immediately. If is not, it has to be transformed into a part first
                 if (currentAssembly.IsPart)
                 {
-                    // Activate the part
-                    var modelDoc = (ModelDoc2)Dna.Application.UnsafeObject.ActivateDoc3(currentAssembly.DocumentName, false, 0, ref Errors);
-
-                    // Save the part as a step file
-                    modelDoc.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
-
-                    // Report to the user
-                    Step(4);
-                    if(Errors == 0)
+                    try
                     {
-                        worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Part exported correctly", messageComm: MessageComm.SENDED));
-
-                        // Update the model version
-                        try
-                        {
-                            currentAssembly.UpdateModelVersion();
-                        }
-                        catch
-                        {
-                            var model = new Model(modelDoc);
-                            model.SetCustomProperty("modelVersion", model.GetCustomProperty("version"));
-                        }
-                    }
-                    else
-                    {
-                        worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Part failed to export", messageComm: MessageComm.SENDED));
-                    }
-
-                }
-                else
-                {
-                    var modelDoc = (ModelDoc2)Dna.Application.UnsafeObject.ActivateDoc3(currentAssembly.DocumentName, false, 0, ref Errors);
-                    // Save the assembly as a part
-                    modelDoc.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + "part.SLDPRT",0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, Warnings);
-
-                    // If it works, continue the process
-                    if (Errors == 0)
-                    {
-                        // Report the middle progress
-                        Step(2);
-                        worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly transformed to a part", messageComm: MessageComm.SENDED));
-
-                        // Open the recently exported part
-                        ModelDoc2 exportedPart = Dna.Application.UnsafeObject.OpenDoc6(filepath + "\\" + currentAssembly.DocumentName + "part.SLDPRT", (int)swDocumentTypes_e.swDocPART, (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref Errors, ref Warnings);
+                        // Activate the part
+                        var modelDoc = (ModelDoc2)Dna.Application.UnsafeObject.ActivateDoc3(currentAssembly.DocumentName, false, 0, ref Errors);
 
                         // Save the part as a step file
-                        exportedPart.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
+                        modelDoc.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
 
-                        Dna.Application.UnsafeObject.CloseDoc(currentAssembly.DocumentName + "part.SLDPRT");
-                        Step(2);
-
-                        // If it works, report to the user
+                        // Report to the user
+                        Step(4);
                         if (Errors == 0)
                         {
-                            worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly exported correctly", messageComm: MessageComm.SENDED));
+                            worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Part exported correctly", messageComm: MessageComm.SENDED));
 
                             // Update the model version
                             try
@@ -784,13 +742,72 @@ namespace ServerCommunicationSWAddIn.util
                         }
                         else
                         {
-                            worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly failed to export", messageComm: MessageComm.SENDED));
+                            worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Part failed to export", messageComm: MessageComm.SENDED));
                         }
                     }
-                    else
+                    catch
+                    {
+                        // Report to the user
+                        Step(4);
+                        worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Part failed to export. Open this part separately and then try to export it.", messageComm: MessageComm.SENDED));
+                    }
+
+                }
+                else
+                {
+                    try
+                    {
+                        var modelDoc = (ModelDoc2)Dna.Application.UnsafeObject.ActivateDoc3(currentAssembly.DocumentName, false, 0, ref Errors);
+                        // Save the assembly as a part
+                        modelDoc.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + "part.SLDPRT", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, Warnings);
+
+                        // If it works, continue the process
+                        if (Errors == 0)
+                        {
+                            // Report the middle progress
+                            Step(2);
+                            worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly transformed to a part", messageComm: MessageComm.SENDED));
+
+                            // Open the recently exported part
+                            ModelDoc2 exportedPart = Dna.Application.UnsafeObject.OpenDoc6(filepath + "\\" + currentAssembly.DocumentName + "part.SLDPRT", (int)swDocumentTypes_e.swDocPART, (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref Errors, ref Warnings);
+
+                            // Save the part as a step file
+                            exportedPart.Extension.SaveAs(filepath + "\\" + currentAssembly.DocumentName + ".STEP", 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref Errors, ref Warnings);
+
+                            Dna.Application.UnsafeObject.CloseDoc(currentAssembly.DocumentName + "part.SLDPRT");
+                            Step(2);
+
+                            // If it works, report to the user
+                            if (Errors == 0)
+                            {
+                                worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly exported correctly", messageComm: MessageComm.SENDED));
+
+                                // Update the model version
+                                try
+                                {
+                                    currentAssembly.UpdateModelVersion();
+                                }
+                                catch
+                                {
+                                    var model = new Model(modelDoc);
+                                    model.SetCustomProperty("modelVersion", model.GetCustomProperty("version"));
+                                }
+                            }
+                            else
+                            {
+                                worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly failed to export", messageComm: MessageComm.SENDED));
+                            }
+                        }
+                        else
+                        {
+                            Step(4);
+                            worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly failed to be transformed to a part", messageComm: MessageComm.SENDED));
+                        }
+                    }
+                    catch
                     {
                         Step(4);
-                        worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly failed to be transformed to a part", messageComm: MessageComm.SENDED));
+                        worker.ReportProgress(ProgressStatus, new StatusMessage(currentAssembly.DocumentName, "Assembly failed to be exported. Try it again", messageComm: MessageComm.SENDED));
                     }
                 }
 
