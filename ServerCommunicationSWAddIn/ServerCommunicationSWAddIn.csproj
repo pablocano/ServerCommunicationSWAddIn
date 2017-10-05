@@ -30,46 +30,52 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AngelSix.SolidDna">
+      <HintPath>ref\AngelSix.SolidDna.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Ninject">
+      <HintPath>ref\Ninject.dll</HintPath>
+    </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="SolidWorks.Interop.sldworks">
-      <HintPath>D:\Documentos\solidworks-api\References\2017\SolidWorks.Interop.sldworks.dll</HintPath>
+      <HintPath>ref\SolidWorks.Interop.sldworks.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="SolidWorks.Interop.sw3dprinter">
-      <HintPath>D:\Documentos\solidworks-api\References\2017\SolidWorks.Interop.sw3dprinter.dll</HintPath>
+      <HintPath>ref\SolidWorks.Interop.sw3dprinter.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="SolidWorks.Interop.swcommands">
-      <HintPath>D:\Documentos\solidworks-api\References\2017\SolidWorks.Interop.swcommands.dll</HintPath>
+      <HintPath>ref\SolidWorks.Interop.swcommands.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="SolidWorks.Interop.swconst">
-      <HintPath>D:\Documentos\solidworks-api\References\2017\SolidWorks.Interop.swconst.dll</HintPath>
+      <HintPath>ref\SolidWorks.Interop.swconst.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="SolidWorks.Interop.swdimxpert">
-      <HintPath>D:\Documentos\solidworks-api\References\2017\SolidWorks.Interop.swdimxpert.dll</HintPath>
+      <HintPath>ref\SolidWorks.Interop.swdimxpert.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="SolidWorks.Interop.swdocumentmgr">
-      <HintPath>D:\Documentos\solidworks-api\References\2017\SolidWorks.Interop.swdocumentmgr.dll</HintPath>
+      <HintPath>ref\SolidWorks.Interop.swdocumentmgr.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="SolidWorks.Interop.swmotionstudy">
-      <HintPath>D:\Documentos\solidworks-api\References\2017\SolidWorks.Interop.swmotionstudy.dll</HintPath>
+      <HintPath>ref\SolidWorks.Interop.swmotionstudy.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="SolidWorks.Interop.swpublished">
-      <HintPath>D:\Documentos\solidworks-api\References\2017\SolidWorks.Interop.swpublished.dll</HintPath>
+      <HintPath>ref\SolidWorks.Interop.swpublished.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="SolidWorks.Interop.SWRoutingLib">
-      <HintPath>D:\Documentos\solidworks-api\References\2017\SolidWorks.Interop.SWRoutingLib.dll</HintPath>
+      <HintPath>ref\SolidWorks.Interop.SWRoutingLib.dll</HintPath>
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="System" />
@@ -137,12 +143,6 @@
     <Content Include="icon96.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="D:\Documentos\solidworks-api\SolidDna\AngelSix.SolidDna\AngelSix.SolidDna.csproj">
-      <Project>{48CE7BA4-1082-4089-9056-657A6A3EEA39}</Project>
-      <Name>AngelSix.SolidDna</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
