@@ -1,0 +1,61 @@
+macroScript FileTransformerTool category:"Unreal Tools"
+(
+	-- Get the folder where the STEP files are located
+	thepath = getSavePath caption:"Select folder of the STEP files"
+	
+	if thepath != undefined do
+	(
+		-- Obtain all the STEP files in the folder
+		files = getFiles(thePath + "\*.STEP")
+		
+		-- Set the export params
+		--Geometry------------------------------------------------------------------------
+		FBXExporterSetParam "SmoothingGroups" true
+		FBXExporterSetParam "NormalsPerPoly" false
+		FBXExporterSetParam "TangentSpaceExport" true
+		FBXExporterSetParam "SmoothMeshExport" false
+		FBXExporterSetParam "Preserveinstances" false
+		FBXExporterSetParam "SelectionSetExport" false
+		FBXExporterSetParam "GeomAsBone" false
+		FBXExporterSetParam "ColladaTriangulate" true
+		FBXExporterSetParam "PreserveEdgeOrientation" true
+		--Animation------------------------------------------------------------------------
+		FBXExporterSetParam "Animation" false
+		--Cameras------------------------------------------------------------------------
+		FBXExporterSetParam "Cameras" false
+		--Lights------------------------------------------------------------------------
+		FBXExporterSetParam "Lights" false
+		--Embed Media--------------------------------------------------------------------
+		FBXExporterSetParam "EmbedTextures" false
+		--Units----------------------------------------------------------------------------
+		FBXExporterSetParam "ConvertUnit" "cm"
+		--Axis Conversion-----------------------------------------------------------------
+		FBXExporterSetParam "AxisConversionMethod" "None"
+		FBXExporterSetParam "UpAxis" "Z" 
+		--UI----------------------------------------------------------------
+		FBXExporterSetParam "ShowWarnings" true
+		FBXExporterSetParam "GenerateLog" false
+		--FBX File Format----------------------------------------------------------------
+		FBXExporterSetParam "ASCII" false
+		FBXExporterSetParam "FileVersion" "FBX201400"
+		
+		-- Iterate over all the files
+		for file in files do
+		(
+			-- Import the STEP file
+			importFile file #noPrompt
+			
+			-- Generate the export name
+			exportName = substituteString file ".STEP" ""
+			
+			-- Save a max file with this import
+			saveMaxFile exportName quiet:true
+			
+			-- Export the file in FBX
+			exportFile exportName #noPrompt selectedOnly:false using:exporterPlugin.classes[9]
+			
+			-- Reset the scene
+			resetMaxFile #noprompt
+		)	
+	)
+)
